@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "TP1_MAIN.C": "cpp",
+        "tipo_elemento.h": "c",
+        "stdio.h": "c",
+        "dirent.h": "c"
+    }
+}
