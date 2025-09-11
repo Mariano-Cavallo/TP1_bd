@@ -9,6 +9,8 @@
                 "-g",
                 "${file}",
                 "C:\\Users\\Mariano\\Desktop\\BaseDeDatos\\TP1Archivos\\elementoIndice.c",
+                "C:\\Users\\Mariano\\Desktop\\BaseDeDatos\\TP1Archivos\\metadata.c",
+                "C:\\Users\\Mariano\\Desktop\\BaseDeDatos\\TP1Archivos\\gestorMeta.c",
                 "C:\\Users\\Mariano\\Desktop\\BaseDeDatos\\TP1Archivos\\indice.c",
                 "C:\\Users\\Mariano\\Desktop\\BaseDeDatos\\TP1Archivos\\gestorDeIndices.c",
                 "${fileDirname}\\TP1.c",

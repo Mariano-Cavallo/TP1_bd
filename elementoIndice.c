@@ -15,3 +15,12 @@ elementoIndice crear_elemento(int pk, int pos) {
     elem.referencias = 0;
     return elem;
 }
+
+elementoIndice crear_elemento_guardad(int pk, int pos,int borrado,int referencias) {
+    elementoIndice elem;
+    elem.pk = pk;
+    elem.pos = pos;
+    elem.borrado = borrado;
+    elem.referencias = referencias;
+    return elem;
+}

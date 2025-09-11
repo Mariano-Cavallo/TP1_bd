@@ -4,7 +4,7 @@
 #include <dirent.h>
 #include"gestorDeIndices.h"
 
-#define CAPACIDAD_INICIAL 15
+#define CAPACIDAD_INICIAL 10
 
 
 // Crear gestor

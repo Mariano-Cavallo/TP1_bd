@@ -191,4 +191,79 @@ int busqueda_binaria_por_pk(const indice* idx, int pk) {
 
 }
 
+int indice_guardar(const indice* idx, const char* filename) {
+    if (idx == NULL || filename == NULL) {
+        printf("Error: Parámetros inválidos\n");
+        return 0;
+    }
+    
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Error al abrir archivo para escritura");
+        return 0;
+    }
+    
+    // Guardar cada elemento en formato simple: pk,pos,borrado,referencias
+    for (int i = 0; i < idx->cantidad; i++) {
+        fprintf(file, "%d,%d,%d,%d\n",
+                idx->elemento[i].pk,
+                idx->elemento[i].pos,
+                idx->elemento[i].borrado,
+                idx->elemento[i].referencias);
+    }
+    
+    fclose(file);
+    return 1;
+}
+
+int indice_cargar(indice* idx, const char* filename) {
+    if (idx == NULL || filename == NULL) {
+        printf("Error: Parámetros inválidos\n");
+        return 0;
+    }
+    
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error al abrir archivo para lectura");
+        return 0;
+    }
+    
+    char line[256];
+    idx->cantidad = 0; // Reiniciar el contador
+    
+    while (fgets(line, sizeof(line), file)) {
+        // Eliminar salto de línea
+        line[strcspn(line, "\n")] = '\0';
+        
+        int pk, pos, borrado, referencias;
+        // Leer los cuatro valores separados por comas
+        if (sscanf(line, "%d,%d,%d,%d", &pk, &pos, &borrado, &referencias) == 4) {
+            if (!indice_agregar_elemento(idx, pk, pos, borrado, referencias)) {
+                fclose(file);
+                return 0;
+            }
+        } else {
+            printf("Error: Formato inválido en línea: %s\n", line);
+        }
+    }
+    
+    fclose(file);
+    return 1;
+}
+
+//solo para cargar
+int indice_agregar_elemento(indice* idx,int pk,int pos,int borrado,int referencias){
+
+    elementoIndice* temp = (elementoIndice*)realloc(idx->elemento, (idx->cantidad + 1) * sizeof(elementoIndice));
+    if (temp == NULL) {
+        return -1; // Error de memoria
+    }
+    
+    idx->elemento = temp;
+    idx->elemento[idx->cantidad] = crear_elemento_guardad(pk,pos,borrado,referencias);
+    idx->cantidad++;
+    return 0;
+
+
+}
 

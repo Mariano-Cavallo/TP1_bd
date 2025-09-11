@@ -73,7 +73,7 @@ int main() {
     snprintf(nombre_indices, sizeof(nombre_indices), "%s.idx", nombre);
     FILE *f_index = fopen(nombre_indices, "w");
     if (f_index == NULL) {
-        perror("Error al abrir archivo de índices");
+        perror("Error al abrir archivo de indices");
         return 1;
     }
     fclose(f_index);

@@ -10,7 +10,7 @@
 #include <dirent.h>
 
 // Estructura del gestor
-typedef struct gestorIndices {
+typedef struct{
     indice** indices;
     char** nombres;
     int cantidad;

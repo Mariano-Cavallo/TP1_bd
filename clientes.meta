@@ -1,0 +1,8 @@
+ARCHIVO=clientes
+LARGO_PK=2
+POS_PK=0
+LRECL=16
+CONTIENE_FK=1
+FK=sucursal
+POS_FK=14
+

@@ -37,4 +37,11 @@ int busqueda_binaria_por_pk(const indice*, int);
 
 int esta_ordenado_por_pk(const indice*);
 
+int indice_guardar(const indice* , const char*);
+
+int indice_cargar(indice* idx, const char* filename);
+
+int indice_agregar_elemento(indice* ,int ,int ,int ,int );
+
+
 #endif
