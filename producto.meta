@@ -1,0 +1,7 @@
+ARCHIVO=producto
+LARGO_PK=2
+POS_PK=0
+LRECL=10
+CONTIENE_FK=1
+FK=clientes
+POS_FK=9

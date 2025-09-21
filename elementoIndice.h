@@ -6,7 +6,7 @@
 #include <string.h>
 
 
-typedef struct elementoIndice {
+typedef struct{
 	int pk;
 	int pos;
 	int borrado;
@@ -14,5 +14,7 @@ typedef struct elementoIndice {
 } elementoIndice;
 
 elementoIndice crear_elemento(int, int);
+
+elementoIndice crear_elemento_guardad(int, int, int, int);
 
 #endif
