@@ -23,7 +23,6 @@ void limpiar_entrada();
 void a_minusculas(char *);
 void ejecutar_comando(char *);
 
-indice* crearNuevoIndice();
 
 
 

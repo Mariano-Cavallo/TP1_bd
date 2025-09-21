@@ -13,7 +13,9 @@ typedef struct {
 
 // Prototipos de funciones
 GestorDeMetadata* gestor_crear(const char *);
+
 Metadata* metadata_buscar_por_id(GestorDeMetadata*,int);
+
 int gestor_cantidad(GestorDeMetadata *);
 void gestor_destruir(GestorDeMetadata *);
 void gestor_inicializar(GestorDeMetadata *, const char *);

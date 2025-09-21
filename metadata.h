@@ -18,10 +18,15 @@ typedef struct {
 
 // Prototipos de funciones
 char* metadata_nombre(Metadata*);
+
 void metadata_inicializar(Metadata *);
+
 void metadata_mostrar(const Metadata *);
+
 int metadata_guardar(const Metadata *, const char *);
+
 int metadata_cargar(Metadata *, const char *);
+
 int metadata_existe(const char *);
 
 

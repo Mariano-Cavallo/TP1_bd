@@ -14,6 +14,7 @@ typedef struct{
 } elementoIndice;
 
 elementoIndice crear_elemento(int, int);
+
 elementoIndice crear_elemento_guardad(int, int, int, int);
 
 #endif

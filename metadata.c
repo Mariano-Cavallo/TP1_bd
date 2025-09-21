@@ -37,7 +37,7 @@ void metadata_mostrar(const Metadata *meta) {
     printf("Longitud Registro (LRECL): %d\n", meta->LRECL);
     printf("Contiene FK: %d\n", meta->contiene_FK);
     if(meta->contiene_FK == 1){
-        printf("Clave Foránea (FK): %s\n", meta->FK);
+        printf("nombre delarch (FK): %s\n", meta->FK);
         printf("Posición FK: %d\n", meta->Pos_FK);
     }
     printf("================\n");

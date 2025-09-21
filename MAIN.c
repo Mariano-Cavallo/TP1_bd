@@ -13,10 +13,10 @@
 
 int main() {
     
-    iniciar();
+    iniciar();    
     
     char entrada[100];
-    
+
     printf("========= SHELL INTERACTIVA =========\n");
     printf("Escribe 'ayuda' para ver los comandos disponibles\n");
     printf("Escribe 'salir' para terminar\n\n");
