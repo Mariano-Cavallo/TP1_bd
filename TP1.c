@@ -113,17 +113,21 @@ void ayuda() {
 
 // CREAR archivo y su metadata
 void crear() {
-    inicializar_gestores();
     char nombre[50];
     printf("Nombre del archivo a crear: ");
     scanf("%49s", nombre);
     limpiar_entrada();
 
-    if (gestor_buscar(g_meta, nombre)) {
-        printf("Ya existe un archivo con ese nombre.\n");
-        return;
+    // 1. Validación Crear
+    if (strlen(nombre) == 0) {
+        printf("Nombre inválido.\n");
+        return; // Fin si no está todo ok
     }
 
+    // 2. ¿Todo ok?
+    // (Podrías agregar más validaciones aquí si lo deseas)
+
+    // 3. Generar Metadata
     Metadata meta;
     metadata_inicializar(&meta);
     strncpy(meta.archivo, nombre, sizeof(meta.archivo)-1);
@@ -146,23 +150,44 @@ void crear() {
         limpiar_entrada();
     }
 
-    if (gestor_agregar(g_meta, &meta)) {
-        char filename[100];
-        snprintf(filename, sizeof(filename), "./%s.meta", nombre);
-        metadata_guardar(&meta, filename);
-        snprintf(filename, sizeof(filename), "./%s.dat", nombre);
-        FILE *f = fopen(filename, "w"); if (f) fclose(f);
-        // Crear índice vacío en el gestor de índices
-        crear_nuevo_indice(g_indices, nombre);
-        printf("Archivo, metadata e índice creados correctamente.\n");
+    // 4. Verificar existencia de archivo
+    char datafile[100];
+    snprintf(datafile, sizeof(datafile), "./%s.dat", nombre);
+    FILE *f = fopen(datafile, "r");
+    int existe = (f != NULL);
+    if (f) fclose(f);
+
+    if (existe) {
+        // Si existe, Alta Metadata
+        if (gestor_agregar(g_meta, &meta)) {
+            char filename[100];
+            snprintf(filename, sizeof(filename), "./%s.meta", nombre);
+            metadata_guardar(&meta, filename);
+            crear_nuevo_indice(g_indices, nombre);
+            printf("Archivo ya existía. Metadata e índice dados de alta.\n");
+        } else {
+            printf("Error al dar de alta metadata.\n");
+        }
     } else {
-        printf("Error al crear metadata.\n");
+        // Si no existe, Crear archivo
+        f = fopen(datafile, "w");
+        if (f) fclose(f);
+        if (gestor_agregar(g_meta, &meta)) {
+            char filename[100];
+            snprintf(filename, sizeof(filename), "./%s.meta", nombre);
+            metadata_guardar(&meta, filename);
+            crear_nuevo_indice(g_indices, nombre);
+            printf("Archivo, metadata e índice creados correctamente.\n");
+        } else {
+            printf("Error al crear metadata.\n");
+        }
     }
+
+  
 }
 
 // INSERTAR registro en archivo
 void insertar() {
-    inicializar_gestores();
     char nombre[50];
     printf("Archivo destino: ");
     scanf("%49s", nombre);
@@ -190,28 +215,6 @@ void insertar() {
     pkstr[meta->Largo_PK] = '\0';
     int pk = atoi(pkstr);
 
-    // Validar FK si corresponde
-    if (meta->contiene_FK) {
-        // Buscar archivo origen de la FK
-        Metadata *meta_fk = gestor_buscar(g_meta, meta->FK);
-        if (!meta_fk) {
-            printf("No existe el archivo de origen de la FK: %s\n", meta->FK);
-            return;
-        }
-        // Obtener valor de la FK del registro
-        char fkstr[20];
-        strncpy(fkstr, registro + meta->Pos_FK, meta_fk->Largo_PK);
-        fkstr[meta_fk->Largo_PK] = '\0';
-        int fk = atoi(fkstr);
-
-        // Buscar la FK como PK en el archivo origen
-        indice *idx_fk = obtener_indice_gestor(g_indices, meta->FK);
-        if (!idx_fk || busqueda_binaria_por_pk(idx_fk, fk) == -1) {
-            printf("La FK ingresada (%d) no existe como PK en el archivo origen (%s).\n", fk, meta->FK);
-            return;
-        }
-    }
-
     // Obtener o crear índice en el gestor
     indice *idx = obtener_indice_gestor(g_indices, nombre);
     if (!idx) {
@@ -219,10 +222,35 @@ void insertar() {
         idx = obtener_indice_gestor(g_indices, nombre);
     }
 
-    // Verificar si ya existe la PK
+    // Validar que no exista PK
     if (busqueda_binaria_por_pk(idx, pk) != -1) {
         printf("Ya existe un registro con esa PK.\n");
         return;
+    }
+
+    // Validar FK si corresponde
+    if (meta->contiene_FK) {
+        Metadata *meta_fk = gestor_buscar(g_meta, meta->FK);
+        if (!meta_fk) {
+            printf("No existe el archivo de origen de la FK: %s\n", meta->FK);
+            return;
+        }
+        char fkstr[20];
+        // CORRECTO: copiar desde Pos_FK la cantidad de bytes de la PK del archivo FK
+        strncpy(fkstr, registro + meta->Pos_FK-1, meta_fk->Largo_PK);
+        fkstr[meta_fk->Largo_PK] = '\0';
+        int fk = atoi(fkstr);
+
+        indice *idx_fk = obtener_indice_gestor(g_indices, meta->FK);
+        if (!idx_fk || busqueda_binaria_por_pk(idx_fk, fk) == -1) {
+            printf("La FK ingresada (%d) no existe como PK en el archivo origen (%s).\n", fk, meta->FK);
+            return;
+        }
+        // Aumentar contador de referencias de la FK
+        incrementar_referencias(idx_fk, fk);
+        char idxfile_fk[100];
+        snprintf(idxfile_fk, sizeof(idxfile_fk), "./%s.idx", meta->FK);
+        indice_guardar(idx_fk, idxfile_fk);
     }
 
     // Insertar en archivo de datos
@@ -250,7 +278,6 @@ void insertar() {
 
 // BORRAR registro por PK
 void borrar() {
-    inicializar_gestores();
     char nombre[50];
     printf("Archivo: ");
     scanf("%49s", nombre);
@@ -266,6 +293,10 @@ void borrar() {
     printf("PK a borrar: ");
     scanf("%19s", pkstr);
     limpiar_entrada();
+    if ((int)strlen(pkstr) != meta->Largo_PK) {
+        printf("Longitud de clave incorrecta.\n");
+        return;
+    }
     int pk = atoi(pkstr);
 
     indice *idx = obtener_indice_gestor(g_indices, nombre);
@@ -275,35 +306,47 @@ void borrar() {
     }
 
     int posidx = busqueda_binaria_por_pk(idx, pk);
-    if (posidx == -1) {
-        printf("PK no encontrada en el índice.\n");
+    if (posidx == -1 || idx->elemento[posidx].borrado) {
+        printf("PK no encontrada o ya borrada.\n");
         return;
     }
 
-    // Verificar si esta PK es referenciada como FK en algún otro archivo
-    for (int i = 0; i < g_meta->cantidad; i++) {
-        Metadata *meta_otro = &(g_meta->metadatas[i]);
-        if (meta_otro->contiene_FK && strcmp(meta_otro->FK, nombre) == 0) {
-            // Buscar en todos los registros del archivo meta_otro si existe la FK igual a pk
-            char datafile[100];
-            snprintf(datafile, sizeof(datafile), "./%s.dat", meta_otro->archivo);
-            FILE *f = fopen(datafile, "r");
-            if (f) {
-                char linea[256];
-                while (fgets(linea, sizeof(linea), f)) {
-                    if (linea[0] == '*') continue; // Saltar borrados lógicos
+    // Verificar flag de referencias
+    if (idx->elemento[posidx].referencias > 0) {
+        printf("No se puede borrar: la PK tiene referencias activas.\n");
+        return;
+    }
+
+    // Verificar si hace referencia a una FK y decrementar contador si corresponde
+    if (meta->contiene_FK) {
+        char datafile[100];
+        snprintf(datafile, sizeof(datafile), "./%s.dat", nombre);
+        FILE *f = fopen(datafile, "r");
+        if (f) {
+            char linea[256];
+            fseek(f, idx->elemento[posidx].pos, SEEK_SET);
+            if (fgets(linea, sizeof(linea), f)) {
+                Metadata *meta_fk = gestor_buscar(g_meta, meta->FK);
+                if (meta_fk) {
                     char fkstr[20];
-                    strncpy(fkstr, linea + meta_otro->Pos_FK, meta->Largo_PK);
-                    fkstr[meta->Largo_PK] = '\0';
+                    strncpy(fkstr, linea + meta->Pos_FK -1, meta_fk->Largo_PK);
+                    fkstr[meta_fk->Largo_PK] = '\0';
                     int fk = atoi(fkstr);
-                    if (fk == pk) {
-                        printf("No se puede borrar: la PK está referenciada como FK en el archivo %s.\n", meta_otro->archivo);
-                        fclose(f);
-                        return;
+                    indice *idx_fk = obtener_indice_gestor(g_indices, meta->FK);
+                    if (idx_fk) {
+                        int posfk = busqueda_binaria_por_pk(idx_fk, fk);
+                        if (posfk != -1) {
+                            idx_fk->elemento[posfk].referencias -=1;
+                                if (idx_fk->elemento[posfk].referencias < 0)
+                                    idx_fk->elemento[posfk].referencias = 0;
+                            char idxfile_fk[100];
+                            snprintf(idxfile_fk, sizeof(idxfile_fk), "./%s.idx", meta->FK);
+                            indice_guardar(idx_fk, idxfile_fk);
+                        }
                     }
                 }
-                fclose(f);
             }
+            fclose(f);
         }
     }
 
@@ -330,7 +373,6 @@ void borrar() {
 
 // LEER registro por PK
 void leer() {
-    inicializar_gestores();
     char nombre[50];
     printf("Archivo: ");
     scanf("%49s", nombre);
@@ -377,7 +419,6 @@ void leer() {
 
 // MOSTRAR todos los registros de un archivo
 void mostrar() {
-    inicializar_gestores();
     char nombre[50];
     printf("Archivo: ");
     scanf("%49s", nombre);
@@ -417,7 +458,6 @@ void mostrar() {
 
 // CAMBIAR un registro por PK
 void cambiar() {
-    inicializar_gestores();
     char nombre[50];
     printf("Archivo: ");
     scanf("%49s", nombre);
@@ -426,7 +466,7 @@ void cambiar() {
     Metadata *meta = gestor_buscar(g_meta, nombre);
     if (!meta) {
         printf("No existe ese archivo.\n");
-        return;
+        return; // Fin si no existe
     }
 
     char pkstr[20];
@@ -447,27 +487,52 @@ void cambiar() {
         return;
     }
 
+    // Borrar PK anterior (borrado lógico)
     char datafile[100];
     snprintf(datafile, sizeof(datafile), "./%s.dat", nombre);
-    FILE *f = fopen(datafile, "r");
+    FILE *f = fopen(datafile, "r+");
     if (!f) {
         printf("No se pudo abrir el archivo de datos.\n");
         return;
     }
+    fseek(f, idx->elemento[posidx].pos, SEEK_SET);
+    for (int i = 0; i < meta->LRECL; i++) fputc('*', f);
+    fclose(f);
 
+    idx->elemento[posidx].borrado = 1;
+    char idxfile[100];
+    snprintf(idxfile, sizeof(idxfile), "./%s.idx", nombre);
+    indice_guardar(idx, idxfile);
+
+    // Insertar nuevo registro
     printf("Nuevo registro (longitud %d): ", meta->LRECL);
     char nuevo[256];
     fgets(nuevo, sizeof(nuevo), stdin);
     nuevo[strcspn(nuevo, "\n")] = '\0';
     if ((int)strlen(nuevo) != meta->LRECL) {
         printf("Longitud incorrecta.\n");
-        fclose(f);
         return;
     }
 
-    fseek(f, idx->elemento[posidx].pos, SEEK_SET);
+    f = fopen(datafile, "a+");
+    if (!f) {
+        printf("No se pudo abrir el archivo de datos para insertar.\n");
+        return;
+    }
+    fseek(f, 0, SEEK_END);
+    long pos = ftell(f);
     fprintf(f, "%s\n", nuevo);
     fclose(f);
+
+    // Insertar en índice y guardar
+    char pkstr_nuevo[20];
+    strncpy(pkstr_nuevo, nuevo + meta->Pos_PK, meta->Largo_PK);
+    pkstr_nuevo[meta->Largo_PK] = '\0';
+    int pk_nuevo = atoi(pkstr_nuevo);
+
+    agregar_elemento(idx, pk_nuevo);
+    idx->elemento[idx->cantidad-1].pos = (int)pos;
+    indice_guardar(idx, idxfile);
 
     printf("Registro modificado.\n");
 }
